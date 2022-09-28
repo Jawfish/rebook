@@ -1,7 +1,7 @@
 import type { Location } from 'epubjs/types/rendition';
 import type { BookContext } from './lib/Store';
 
-import ePub, { Book } from 'epubjs';
+import ePub, { Book, Rendition } from 'epubjs';
 import localforage from 'localforage';
 import React, { useState, useEffect } from 'react';
 
@@ -22,11 +22,17 @@ import { RenditionContext } from './lib/Store';
 const App = () => {
 	const [book, setBook] = useState<Book | null>(null);
 	const [highlights, setHighlights] = useState<Highlight[]>([]);
+	const [showModal, setShowModal] = useState<boolean>(false);
 	const [location, setLocation] = useState<string>('');
-	const [renditionContext, setrenditionContext] = useState<BookContext>({
-		rendition: null
+	// TODO: currently, these functions keep a snapshot
+	// of the state passed to useState when initializing the context.
+	// This causes a closure where rendition, selection, and selectLocation
+	// are set to null or '' when one of the "set" functions are called.
+	const [context, setContext] = useState<BookContext>({
+		rendition: null,
+		selection: '',
+		selectionLocation: null
 	});
-	// TODO: add context so rendition can be accessed by ControlsComponent
 
 	/**
 	 * Handles the upload of a new .epub from UploaderComponent.
@@ -54,6 +60,14 @@ const App = () => {
 		setBook(b);
 		setHighlights(data.highlights);
 		setLocation(data.location);
+	};
+
+	const handleContextSetting = (c: BookContext): void => {
+		console.log(c);
+		setContext(c);
+		setTimeout(() => {
+			console.log(context);
+		}, 1000);
 	};
 
 	/**
@@ -91,14 +105,18 @@ const App = () => {
 		);
 	} else {
 		return (
-			<RenditionContext.Provider value={renditionContext}>
+			<RenditionContext.Provider
+				value={{
+					...context,
+					handler: handleContextSetting
+				}}>
 				<div
 					className="mx-auto grid max-h-screen grid-cols-6 grid-rows-6"
 					style={{ maxWidth: '110rem' }}>
 					<div className="row-span-full">
 						<IndexComponent />
 					</div>
-					<div className="col-span-4 col-start-2 row-span-full overflow-y-hidden">
+					<div className="col-span-4 col-start-2 row-span-full min-h-screen overflow-y-hidden">
 						<ReaderComponent
 							book={book}
 							highlights={highlights}
@@ -109,7 +127,10 @@ const App = () => {
 						<HighlightsComponent />
 					</div>
 					<div className="absolute bottom-0 w-1/2 max-w-3xl place-self-center">
-						<ControlsComponent />
+						<ControlsComponent
+							modalShowing={showModal}
+							setShowModal={show => setShowModal(show)}
+						/>
 					</div>
 				</div>
 			</RenditionContext.Provider>

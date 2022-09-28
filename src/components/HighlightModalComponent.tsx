@@ -1,8 +1,17 @@
-import React from 'react';
+import React, { useContext } from 'react';
+
+import { BookContext, RenditionContext } from '../lib/Store';
 
 import ButtonComponent from './ButtonComponent/ButtonComponent';
 
-const HighlightModalComponent = () => {
+type HighlightModalComponentProps = {
+	closeModal: () => void;
+};
+
+const HighlightModalComponent = ({
+	closeModal
+}: HighlightModalComponentProps) => {
+	const context = useContext<BookContext>(RenditionContext);
 	return (
 		<div className="flex flex-col">
 			<div className="flex flex-col">
@@ -26,14 +35,22 @@ const HighlightModalComponent = () => {
 				<div className="mt-2">
 					<ButtonComponent
 						label="Cancel"
-						onClick={() => console.log('cancel')}
+						onClick={() => {
+							context.setContextSelection('');
+							// deselect the text
+							console.log(context.rendition);
+							closeModal();
+						}}
 						buttonClass="cancel-button"
 					/>
 				</div>
 				<div className="mt-2">
 					<ButtonComponent
 						label="Save"
-						onClick={() => console.log('save')}
+						onClick={() => {
+							context.setContextSelection('');
+							closeModal();
+						}}
 						buttonClass="primary-button"
 					/>
 				</div>

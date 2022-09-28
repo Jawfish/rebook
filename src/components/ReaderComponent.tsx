@@ -20,8 +20,7 @@ const Reader: FC<ReaderProps> = ({
 	highlights
 }: ReaderProps): JSX.Element => {
 	const viewerRef = useRef(null);
-	const renditionContext = useContext<BookContext>(RenditionContext);
-	const [currentSelection, setCurrentSelection] = useState<string>('');
+	const context = useContext<BookContext>(RenditionContext);
 
 	useEffect(() => {
 		async function initializeRendition() {
@@ -32,34 +31,16 @@ const Reader: FC<ReaderProps> = ({
 				body: { 'padding-bottom': '6rem !important' }
 			});
 			await r.display();
-
-			r.on('relocated', (l: Location) => {
-				console.log('relocated', l.start);
+			// TODO: on r.on('relocated', (l: Location) => { ... })
+			// TODO: when text is deselected, context.setContextSelection('');
+			// TODO: on r.on('selected', (cfiRange, contents) => { ... })
+			context.handler!({
+				...context,
+				rendition: r
 			});
-
-			r.on('selected', (cfiRange: string, contents: string) => {
-				if (!contents) {
-					setCurrentSelection('');
-				} else {
-					// TODO: when text is selected,
-					// show a popup below the selection
-					// to allow the user to highlight it.
-					setCurrentSelection(cfiRange);
-				}
-			});
-
-			renditionContext.rendition = r;
 		}
 		initializeRendition();
-	}, [book]);
-
-	const highlightSelection = () => {
-		// TODO: show highlight modal
-		// modal should take a title which is displayed in the highlight sidebar
-		// modal should show the selected text
-		// modal should take a longer annotation to associate with the highlight
-		renditionContext.rendition!.annotations.add('highlight', currentSelection);
-	};
+	}, []);
 
 	return (
 		<div className="col-span-10  h-full w-full border border-green-400 bg-green-50 py-2">
