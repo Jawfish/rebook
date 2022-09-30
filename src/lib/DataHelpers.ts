@@ -1,28 +1,44 @@
-import type BookInfo from '../types/BookInfo';
 import type Book from 'epubjs/types/book';
 
 import ePub from 'epubjs';
 import localforage from 'localforage';
 
-export const fileInIndexedDB = async (name: string): Promise<boolean> =>
-	name in (await localforage.keys());
+import { BookContext } from './Store';
+
+export const keyInIndexedDB = async (name: string): Promise<boolean> =>
+	(await localforage.keys()).includes(name);
 
 /**
- * Gets the current book (if one exists) from IndexedDB as a BookInfo object.
- * Uses the book's name as the key and gets the associated value from IndexedDB.
- * @returns BookInfo object of the current book if it exists, null otherwise.
+ * Check if 'currentBook' is a key in IndexedDB.
+ * @returns True if 'currentBook' is a key in IndexedDB.
  */
-export const getCurrentBookInfo = async (): Promise<BookInfo | null> => {
+export const currentBookExists = async (): Promise<boolean> =>
+	keyInIndexedDB('currentBook');
+
+/**
+ * Gets the current book (if one exists) from IndexedDB.
+ * Uses the book's name as the key and gets the associated value from IndexedDB.
+ * @returns The current book if it exists, null otherwise.
+ */
+export const getCurrentBookInfo = async (): Promise<BookContext> => {
 	const bookName = (await localforage.getItem('currentBook')) as string;
-	return await localforage.getItem(bookName);
+	const bookInfo = await localforage.getItem(bookName);
+	return bookInfo as BookContext;
 };
 
 /**
  * Serializes the currently opened book to IndexedDB.
  */
-export function serialize(book: BookInfo): void {
-	localforage.setItem(book.title, book);
-	localforage.setItem('currentBook', book.title);
+export function serialize(bookInfo: BookContext): void {
+	if (!bookInfo.title) return;
+	// We don't need everything in the bookInfo object,
+	// so only store the data that needs to be persisted.
+	localforage.setItem(bookInfo.title, {
+		file: bookInfo.file,
+		highlights: bookInfo.highlights,
+		location: bookInfo.location
+	});
+	localforage.setItem('currentBook', bookInfo.title);
 }
 
 /**
@@ -41,5 +57,5 @@ export const getBookFromEpub = (file: File): Book =>
  * @param name The name of the book to get.
  * @returns The BookInfo for the book with the given name.
  */
-const getBook = async (name: string): Promise<BookInfo> =>
-	localforage.getItem(name) as Promise<BookInfo>;
+const getBook = async (name: string): Promise<BookContext> =>
+	localforage.getItem(name) as Promise<BookContext>;

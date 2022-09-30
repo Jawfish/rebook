@@ -1,8 +1,12 @@
 import './index.scss';
 
 import ReactDOM from 'react-dom/client';
+import React from 'react';
 
 import App from './App';
 
-// React.StrictMode doesn't play well with epubjs's use of iframes.
-ReactDOM.createRoot(document.querySelector('#root')!).render(<App />);
+ReactDOM.createRoot(document.querySelector('#root')!).render(
+	<React.StrictMode>
+		<App />
+	</React.StrictMode>
+);
