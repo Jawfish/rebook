@@ -21,7 +21,7 @@ import { renderBookOnElement } from './lib/Utils';
 
 const App = () => {
 	// The rendition is rendered to the element using this ref.
-	const viewerRef = useRef<HTMLDivElement>(null);
+	const viewer = useRef<HTMLDivElement>(null);
 	const context = useRef<BookContext>({
 		selectionLocation: null,
 		highlights: [],
@@ -82,7 +82,7 @@ const App = () => {
 		// Initialize the rendition when the book is ready
 		// if there is not already a rendition.
 		if (
-			viewerRef.current &&
+			viewer.current &&
 			book &&
 			!context.current.rendition &&
 			context.current.title
@@ -91,7 +91,7 @@ const App = () => {
 				context.current.selectionLocation = cfiRange;
 				context.current.iframe = contents.window;
 			};
-			const r = renderBookOnElement(book, viewerRef);
+			const r = renderBookOnElement(book, viewer);
 
 			r.display(context.current.location?.start.cfi);
 
@@ -120,7 +120,7 @@ const App = () => {
 					<div className="row-span-full">{/* <IndexComponent /> */}</div>
 					<div className="col-span-4 col-start-2 row-span-full min-h-screen overflow-y-hidden">
 						<div className="col-span-10  h-full w-full border border-green-400 bg-green-50 py-2">
-							<div ref={viewerRef}></div>
+							<div ref={viewer}></div>
 						</div>
 					</div>
 					<div className="row-span-full">{/* <HighlightsComponent /> */}</div>
