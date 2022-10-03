@@ -12,7 +12,6 @@ export type BookContext = {
 	title: string | null;
 	file: File | null;
 	location: Location | null;
-	book: Book | null;
 	iframe: Window | null;
 	rendition: Rendition | null;
 };
