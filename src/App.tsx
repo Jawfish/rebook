@@ -1,7 +1,7 @@
 import type { Location } from 'epubjs/types/rendition';
 import type { BookContext } from './lib/Store';
 
-import ePub, { Book, Rendition } from 'epubjs';
+import ePub, { Book, Contents, EpubCFI, Rendition } from 'epubjs';
 import localforage from 'localforage';
 import React, { useState, useEffect, useRef } from 'react';
 
@@ -23,14 +23,22 @@ const App = () => {
 	// The rendition is rendered to the element using this ref.
 	const viewerRef = useRef<HTMLDivElement>(null);
 	const [context, setContext] = useState<BookContext>({
-		rendition: null,
 		selectionLocation: null,
 		highlights: [],
 		title: null,
 		location: null,
 		file: null,
-		book: null
+		book: null,
+		iframe: null,
+		rendition: null
 	});
+	// This reference is used to avoid stale closures
+	// when referencing the context in event handlers
+	// on the rendition. Everything should update
+	// the reference when the context changes, then
+	// set the context to contextRef if a component
+	// needs to be updated.
+	const contextRef = useRef<BookContext>(context);
 
 	/**
 	 * Handles UploaderComponent's onUpload event.
@@ -44,6 +52,14 @@ const App = () => {
 	};
 
 	useEffect(() => {
+		const handleSelection = (cfiRange: EpubCFI, contents: Contents) => {
+			contextRef.current.selectionLocation = cfiRange;
+			contextRef.current.iframe = contents.window;
+			setContext({
+				...contextRef.current
+			});
+		};
+
 		(async () => {
 			if (context.book) return;
 
@@ -59,12 +75,12 @@ const App = () => {
 				// uploaded a file from UploaderComponent
 				const book = getBookFromEpub(context.file);
 				await book.ready;
-				setContext({
+				contextRef.current = {
 					...context,
 					title: context.file.name,
-					book,
-					location: book.navigation.toc[0].href
-				});
+					book
+				};
+				setContext(contextRef.current);
 			} else if (bookExistsInIndexedDB) {
 				// This path is taken if the user has already
 				// uploaded a file and is returning to the app.
@@ -74,39 +90,31 @@ const App = () => {
 				// so that the rendition can access the object's
 				// properties.
 				await book.ready;
-				setContext({
+				contextRef.current = {
 					...context,
 					highlights: bookInfo.highlights,
 					location: bookInfo.location,
 					file: bookInfo.file,
+					title: bookInfo.file!.name,
 					book
-				});
+				};
+				setContext(contextRef.current);
 			}
 		})();
 
-		// Any time the context changes, we need to serialize the book info
-		// and save it to IndexedDB.
-		if (context.book) {
-			serialize(context);
-		}
-
-		// Set up the rendition
+		// Initialize the rendition when the book is ready
+		// if there is not already a rendition.
 		if (viewerRef.current && context.book && !context.rendition) {
-			const rendition = renderBookOnElement(context.book, viewerRef);
-			setContext({
-				...context,
-				rendition
-			});
-			rendition.display(
-				// TEMP: replace context.book.navigation.toc[5].href
-				// 		with index 0 - this is just for testing
-				context.location || context.book.navigation.toc[5].href
-			);
-			// TODO: set up selected events:
-			//		r.on('selected', (cfiRange, contents) => { ... })
+			const r = renderBookOnElement(context.book, viewerRef);
 
-			// TODO: set up relocated events:
-			//		r.on('relocated', (l: Location) => { ... })
+			r.display(context.location?.start.cfi);
+
+			r.on('selected', (l: EpubCFI, c: Contents) => handleSelection(l, c));
+			r.on('relocated', (location: Location) =>
+				serialize({ ...contextRef.current, location })
+			);
+
+			contextRef.current.rendition = r;
 		}
 	}, [context, viewerRef]);
 
@@ -131,10 +139,7 @@ const App = () => {
 					</div>
 					<div className="row-span-full">{/* <HighlightsComponent /> */}</div>
 					<div className="absolute bottom-0 w-1/2 max-w-3xl place-self-center">
-						{/* <ControlsComponent
-							modalShowing={showModal}
-							setShowModal={show => setShowModal(show)}
-						/> */}
+						<ControlsComponent />
 					</div>
 				</div>
 			)}

@@ -1,30 +1,20 @@
 import React, { useContext, useEffect, useState } from 'react';
 
-import { BookContext, RenditionContext } from '../lib/Store';
+import { BookContext, Context } from '../lib/Store';
+import { RenditionController } from '../types/RenditionController';
 
 import HighlightModalComponent from './HighlightModalComponent';
 import ButtonComponent from './ButtonComponent/ButtonComponent';
 
-type ControlsComponentProps = {
-	modalShowing: boolean;
-	setShowModal: (show: boolean) => void;
-};
-
-const ControlsComponent = ({
-	modalShowing,
-	setShowModal
-}: ControlsComponentProps) => {
-	const context = useContext<BookContext>(RenditionContext);
+const ControlsComponent = () => {
+	const context = useContext<BookContext>(Context);
+	const modalShowing = false;
 
 	return (
 		<div className="rounded-t-md border border-gray-300 bg-gray-50 p-4">
 			{modalShowing && (
 				<div className="col-span-4 place-self-center">
-					<HighlightModalComponent
-						closeModal={() => {
-							setShowModal(false);
-						}}
-					/>
+					<HighlightModalComponent title="test" annotation="test" />
 				</div>
 			)}
 			{!modalShowing && (
@@ -39,8 +29,8 @@ const ControlsComponent = ({
 					<div className="col-span-1 self-end">
 						<ButtonComponent
 							label="Highlight"
-							onClick={() => setShowModal(true)}
-							disabled={!context.selection}
+							onClick={() => console.log('open modal')}
+							disabled={!context.selectionLocation}
 							buttonClass="highlight-button"
 						/>
 					</div>

@@ -25,6 +25,12 @@
 		"[javascriptreact]": {
 			"editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
 		},
+		"todo-tree.tree.disableCompactFolders": true,
+		"todo-tree.tree.showBadges": false,
+		"todo-tree.tree.showCountsInTree": true,
+		"[jsonc]": {
+			"editor.defaultFormatter": "vscode.json-language-features"
+		},
 	},
 	"extensions": {
 		"recommendations": [
