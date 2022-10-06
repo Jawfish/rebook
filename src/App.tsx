@@ -1,9 +1,7 @@
 import type { Location } from 'epubjs/types/rendition';
-import type { BookContext } from './lib/Store';
 
-import ePub, { Book, Contents, EpubCFI, Rendition } from 'epubjs';
-import localforage from 'localforage';
-import React, { useState, useEffect, useRef } from 'react';
+import { Book, Contents, EpubCFI, Rendition } from 'epubjs';
+import { useState, useEffect, useRef } from 'react';
 
 import HighlightsComponent from './components/HighlightsComponent';
 import IndexComponent from './components/IndexComponent';
@@ -16,23 +14,22 @@ import {
 } from './lib/DataHelpers';
 import Highlight from './types/Highlight';
 import ControlsComponent from './components/ControlsComponent';
-import { Context } from './lib/Store';
+import { RenditionContext } from './lib/Store';
 import { renderBookOnElement } from './lib/Utils';
+import HighlightModalComponent from './components/HighlightModalComponent';
 
 const App = () => {
 	// The rendition is rendered to the element using this ref.
 	const viewer = useRef<HTMLDivElement>(null);
-	const context = useRef<BookContext>({
-		selectionLocation: null,
-		highlights: [],
-		title: null,
-		location: null,
-		file: null,
-		iframe: null,
-		rendition: null
-	});
+
 	const [file, setFile] = useState<File | null>(null);
 	const [book, setBook] = useState<Book | null>(null);
+	const [rendition, setRendition] = useState<Rendition | null>(null);
+	const [highlights, setHighlights] = useState<Highlight[]>([]);
+	const [location, setLocation] = useState<Location | null>(null);
+	const [highlightModalShowing, setHighlightModalShowing] = useState(false);
+	const [renditionWindow, setRenditionWindow] = useState<Window | null>(null);
+	const [selection, setSelection] = useState<EpubCFI | null>(null);
 
 	/**
 	 * Handles UploaderComponent's onUpload event.
@@ -40,6 +37,14 @@ const App = () => {
 	 */
 	const handleFileUploaded = async (file: File) => {
 		setFile(file);
+	};
+
+	/**
+	 * Clear's the rendition's current selection.
+	 */
+	const clearSelection = () => {
+		renditionWindow?.document.getSelection()?.removeAllRanges();
+		setSelection(null);
 	};
 
 	useEffect(() => {
@@ -57,8 +62,6 @@ const App = () => {
 				// uploaded a file from UploaderComponent
 				const book = getBookFromEpub(file);
 				await book.ready;
-				context.current.file = file;
-				context.current.title = file.name;
 				setBook(book);
 			} else if (bookExistsInIndexedDB) {
 				// This path is taken if the user has already
@@ -70,42 +73,48 @@ const App = () => {
 				// properties.
 				await book.ready;
 				setFile(bookInfo.file);
-				context.current.highlights = bookInfo.highlights;
-				context.current.location = bookInfo.location;
-				context.current.file = bookInfo.file;
-				context.current.title = bookInfo.file!.name;
+				setHighlights(bookInfo.highlights);
+				setLocation(bookInfo.location);
 				setBook(book);
-				console.log(book);
 			}
 		})();
 
 		// Initialize the rendition when the book is ready
-		// if there is not already a rendition.
-		if (
-			viewer.current &&
-			book &&
-			!context.current.rendition &&
-			context.current.title
-		) {
+		// if there is not already a rendition. Event listeners
+		// should only be added here to prevent them from being
+		// added multiple times when components are re-rendered.
+		if (viewer.current && book && !rendition) {
+			// TODO: Render highlights from IndexedDB on the rendition
+
+			// Runs when the user makes a selection within the rendition via
+			// the 'selected' event.
 			const handleSelection = (cfiRange: EpubCFI, contents: Contents) => {
-				context.current.selectionLocation = cfiRange;
-				context.current.iframe = contents.window;
+				setSelection(cfiRange);
+				if (!renditionWindow) {
+					setRenditionWindow(contents.window);
+				}
 			};
+
+			// Creates the actual rendition object
 			const r = renderBookOnElement(book, viewer);
 
-			r.display(context.current.location?.start.cfi);
+			r.display(location?.start.cfi);
 
 			r.on('selected', (l: EpubCFI, c: Contents) => handleSelection(l, c));
-			r.on('relocated', (location: Location) =>
-				serialize({ ...context.current, location })
-			);
+			r.on('relocated', (l: Location) => {
+				setLocation(l);
+			});
 
-			context.current.rendition = r;
+			setRendition(r);
 		}
-	}, [file, book]);
+
+		if (file && location) {
+			serialize(file.name, file, highlights, location);
+		}
+	}, [file, book, rendition, highlights, location, renditionWindow, selection]);
 
 	return (
-		<Context.Provider value={context.current}>
+		<>
 			{!book && (
 				<div className="grid h-screen place-items-center">
 					<div className="w-96">
@@ -125,11 +134,45 @@ const App = () => {
 					</div>
 					<div className="row-span-full">{/* <HighlightsComponent /> */}</div>
 					<div className="absolute bottom-0 w-1/2 max-w-3xl place-self-center">
-						<ControlsComponent />
+						{rendition && (
+							<RenditionContext.Provider value={{ rendition }}>
+								{!highlightModalShowing && (
+									<ControlsComponent
+										textIsSelected={selection !== null}
+										onHighlightClicked={() => setHighlightModalShowing(true)}
+										clearSelection={clearSelection}
+									/>
+								)}
+								{highlightModalShowing && (
+									<div className="col-span-4 place-self-center">
+										<HighlightModalComponent
+											onCancel={() => {
+												clearSelection();
+												setHighlightModalShowing(false);
+											}}
+											onSave={(title: string, annotation: string) => {
+												clearSelection();
+												const highlight = {
+													title,
+													annotation,
+													cfiRange: selection!
+												};
+												rendition.annotations.add(
+													'highlight',
+													selection!.toString()
+												);
+												setHighlights([...highlights, highlight]);
+												setHighlightModalShowing(false);
+											}}
+										/>
+									</div>
+								)}
+							</RenditionContext.Provider>
+						)}
 					</div>
 				</div>
 			)}
-		</Context.Provider>
+		</>
 	);
 };
 

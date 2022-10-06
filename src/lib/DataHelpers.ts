@@ -1,10 +1,11 @@
 import type Book from 'epubjs/types/book';
 
-import ePub from 'epubjs';
+import ePub, { Location } from 'epubjs';
 import localforage from 'localforage';
 import { useContext } from 'react';
 
-import { BookContext, Context } from './Store';
+import Highlight from '../types/Highlight';
+import BookInfo from '../types/BookInfo';
 
 export const keyInIndexedDB = async (name: string): Promise<boolean> =>
 	(await localforage.keys()).includes(name);
@@ -21,31 +22,27 @@ export const currentBookExists = async (): Promise<boolean> =>
  * Uses the book's name as the key and gets the associated value from IndexedDB.
  * @returns The current book if it exists, null otherwise.
  */
-export const getCurrentBookInfo = async (): Promise<BookContext> => {
+export const getCurrentBookInfo = async (): Promise<BookInfo> => {
 	const bookName = (await localforage.getItem('currentBook')) as string;
 	const bookInfo = await localforage.getItem(bookName);
-	return bookInfo as BookContext;
+	return bookInfo as BookInfo;
 };
 
 /**
  * Serializes the currently opened book to IndexedDB.
  */
-export function serialize(bookInfo: BookContext): void {
-	try {
-		if (!bookInfo.title) {
-			throw new Error('Book title is null');
-		}
-		// We don't need everything in the bookInfo object,
-		// so only store the data that needs to be persisted.
-		localforage.setItem(bookInfo.title!, {
-			file: bookInfo.file,
-			highlights: bookInfo.highlights,
-			location: bookInfo.location
-		});
-		localforage.setItem('currentBook', bookInfo.title);
-	} catch (error) {
-		console.error('Error serializing book to IndexedDB', error);
-	}
+export function serialize(
+	title: string,
+	file: File,
+	highlights: Highlight[],
+	location: Location
+): void {
+	localforage.setItem(title, {
+		file,
+		highlights,
+		location
+	});
+	localforage.setItem('currentBook', title);
 }
 
 /**
@@ -64,5 +61,5 @@ export const getBookFromEpub = (file: File): Book =>
  * @param name The name of the book to get.
  * @returns The BookInfo for the book with the given name.
  */
-const getBook = async (name: string): Promise<BookContext> =>
-	localforage.getItem(name) as Promise<BookContext>;
+const getBook = async (name: string): Promise<BookInfo> =>
+	localforage.getItem(name) as Promise<BookInfo>;

@@ -1,5 +1,7 @@
+import { EpubCFI } from 'epubjs';
+
 export default interface Highlight {
-	text: string;
-	cfiRange: string;
+	title: string;
 	annotation: string;
+	cfiRange: EpubCFI;
 }
