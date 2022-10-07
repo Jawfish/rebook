@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import ButtonComponent from './ButtonComponent/ButtonComponent';
 
@@ -21,6 +21,12 @@ const HighlightModalComponent = ({
 }: Props) => {
 	const [titleValue, setTitleValue] = useState(title);
 	const [annotationValue, setAnnotationValue] = useState(annotation);
+	const [titleError, setTitleError] = useState(false);
+
+	useEffect(() => {
+		if (titleError) document.getElementById('title')?.focus();
+		if (titleValue) setTitleError(false);
+	}, [titleError, titleValue]);
 
 	return (
 		<div className="flex flex-col rounded-t-md border border-gray-300 bg-gray-50 p-4">
@@ -30,7 +36,10 @@ const HighlightModalComponent = ({
 					type="text"
 					name="title"
 					id="title"
-					className="rounded-md border border-gray-300"
+					autoFocus
+					className={`rounded-md border border-gray-300 p-1 transition-all duration-100 ${
+						titleError ? 'border-red-500 bg-red-50 focus:outline-red-500' : ''
+					}`}
 					value={titleValue}
 					onInput={e => setTitleValue(e.currentTarget.value)}
 				/>
@@ -40,7 +49,7 @@ const HighlightModalComponent = ({
 					id="annotation"
 					cols={45}
 					rows={5}
-					className="mb-1 rounded-md border border-gray-300"
+					className="mb-1 rounded-md border border-gray-300 p-1"
 					value={annotationValue}
 					onInput={e => setAnnotationValue(e.currentTarget.value)}
 				/>
@@ -53,10 +62,22 @@ const HighlightModalComponent = ({
 						buttonClass="cancel-button"
 					/>
 				</div>
+				<div
+					className={`my-auto text-red-500 transition-all duration-100 ${
+						titleError ? 'opacity-100' : 'opacity-0'
+					}`}>
+					Please enter a title.
+				</div>
 				<div className="mt-2">
 					<ButtonComponent
 						label="Save"
-						onClick={() => onSave(titleValue, annotationValue)}
+						onClick={() => {
+							if (titleValue) {
+								onSave(titleValue, annotationValue);
+							} else {
+								setTitleError(true);
+							}
+						}}
 						buttonClass="primary-button"
 					/>
 				</div>

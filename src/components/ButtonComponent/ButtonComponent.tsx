@@ -17,7 +17,7 @@ const ButtonComponent: React.FC<ButtonComponentProps> = ({
 }: ButtonComponentProps): JSX.Element => {
 	return (
 		<button
-			className={`${buttonClass} w-20 rounded-md border p-2  transition-all`}
+			className={`${buttonClass} w-20 rounded-md border p-2  transition-all duration-100`}
 			onClick={onClick}
 			disabled={disabled}>
 			{label}

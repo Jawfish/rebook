@@ -1,7 +1,7 @@
 import type { Location } from 'epubjs/types/rendition';
 
 import { Book, Contents, EpubCFI, Rendition } from 'epubjs';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 import HighlightsComponent from './components/HighlightsComponent';
 import IndexComponent from './components/IndexComponent';
@@ -42,9 +42,44 @@ const App = () => {
 	/**
 	 * Clear's the rendition's current selection.
 	 */
-	const clearSelection = () => {
+	const clearSelection = useCallback(() => {
 		renditionWindow?.document.getSelection()?.removeAllRanges();
 		setSelection(null);
+		// Close the modal so it won't be referencing a null selection
+		// when the user tries to save their highlight.
+		setHighlightModalShowing(false);
+	}, [renditionWindow]);
+
+	/**
+	 * Save a given highlight to the internal state.
+	 * @param title The title of the highlight.
+	 * @param annotation The annotation associated with the highlight.
+	 * @param cfiRange The location of the highlight.
+	 */
+	const saveHighlight = (
+		// TODO: consider making this more functional by taking a rendition
+		// object; also consider taking a Highlight object directly instead
+		// of constructing it here. Could be moved out of the App component
+		// into Utils.
+		title: string,
+		annotation: string,
+		// Default to the current selection if none is provided
+		// for saving a new highlight - the range can be specified
+		// when editing an existing highlight.
+		cfiRange: EpubCFI = selection!
+	) => {
+		const highlight = {
+			title,
+			annotation,
+			cfiRange
+		};
+
+		// We do this so the new highlight will be rendered immediately.
+		rendition!.annotations.add('highlight', selection!.toString());
+		// Save to internal state - will be serialized through App.tsx's useEffect.
+		setHighlights([...highlights, highlight]);
+
+		clearSelection();
 	};
 
 	useEffect(() => {
@@ -84,19 +119,30 @@ const App = () => {
 		// should only be added here to prevent them from being
 		// added multiple times when components are re-rendered.
 		if (viewer.current && book && !rendition) {
-			// TODO: Render highlights from IndexedDB on the rendition
-
 			// Runs when the user makes a selection within the rendition via
 			// the 'selected' event.
 			const handleSelection = (cfiRange: EpubCFI, contents: Contents) => {
 				setSelection(cfiRange);
 				if (!renditionWindow) {
+					// Make sure the rest of the app knows when the user deselects
+					// text in the rendition.
+					contents.window.document.addEventListener('selectionchange', () => {
+						if (!contents.window.document.getSelection()?.toString()) {
+							clearSelection();
+						}
+					});
+
 					setRenditionWindow(contents.window);
 				}
 			};
 
 			// Creates the actual rendition object
 			const r = renderBookOnElement(book, viewer);
+
+			// Render previously-saved highlights
+			highlights.forEach(highlight => {
+				r.annotations.add('highlight', highlight.cfiRange.toString());
+			});
 
 			r.display(location?.start.cfi);
 
@@ -111,7 +157,16 @@ const App = () => {
 		if (file && location) {
 			serialize(file.name, file, highlights, location);
 		}
-	}, [file, book, rendition, highlights, location, renditionWindow, selection]);
+	}, [
+		file,
+		book,
+		rendition,
+		highlights,
+		location,
+		renditionWindow,
+		selection,
+		clearSelection
+	]);
 
 	return (
 		<>
@@ -126,13 +181,28 @@ const App = () => {
 				<div
 					className="mx-auto grid max-h-screen grid-cols-6 grid-rows-6"
 					style={{ maxWidth: '110rem' }}>
-					<div className="row-span-full">{/* <IndexComponent /> */}</div>
+					<div className="row-span-full">
+						<IndexComponent
+							chapters={book.navigation.toc}
+							active={location?.start.href}
+							onClick={href => {
+								rendition?.display(href);
+							}}
+						/>
+					</div>
 					<div className="col-span-4 col-start-2 row-span-full min-h-screen overflow-y-hidden">
 						<div className="col-span-10  h-full w-full border border-green-400 bg-green-50 py-2">
 							<div ref={viewer}></div>
 						</div>
 					</div>
-					<div className="row-span-full">{/* <HighlightsComponent /> */}</div>
+					<div className="row-span-full">
+						<HighlightsComponent
+							highlights={highlights}
+							onHighlightClicked={highlight => {
+								rendition?.display(highlight.cfiRange.toString());
+							}}
+						/>
+					</div>
 					<div className="absolute bottom-0 w-1/2 max-w-3xl place-self-center">
 						{rendition && (
 							<RenditionContext.Provider value={{ rendition }}>
@@ -146,24 +216,8 @@ const App = () => {
 								{highlightModalShowing && (
 									<div className="col-span-4 place-self-center">
 										<HighlightModalComponent
-											onCancel={() => {
-												clearSelection();
-												setHighlightModalShowing(false);
-											}}
-											onSave={(title: string, annotation: string) => {
-												clearSelection();
-												const highlight = {
-													title,
-													annotation,
-													cfiRange: selection!
-												};
-												rendition.annotations.add(
-													'highlight',
-													selection!.toString()
-												);
-												setHighlights([...highlights, highlight]);
-												setHighlightModalShowing(false);
-											}}
+											onCancel={clearSelection}
+											onSave={saveHighlight}
 										/>
 									</div>
 								)}
