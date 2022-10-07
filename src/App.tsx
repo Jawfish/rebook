@@ -15,7 +15,11 @@ import {
 import Highlight from './types/Highlight';
 import ControlsComponent from './components/ControlsComponent';
 import { RenditionContext } from './lib/Store';
-import { renderBookOnElement } from './lib/Utils';
+import {
+	downloadHighlights,
+	extractTextFromSelection,
+	renderBookOnElement
+} from './lib/Utils';
 import HighlightModalComponent from './components/HighlightModalComponent';
 
 const App = () => {
@@ -64,7 +68,34 @@ const App = () => {
 	) => {
 		// If this is a new highlight, render it to the rendition.
 		if (highlights.find(h => h.cfiRange === highlight.cfiRange) === undefined) {
-			rendition!.annotations.add('highlight', highlight.cfiRange.toString());
+			rendition!.annotations.add(
+				'highlight',
+				highlight.cfiRange.toString(),
+				undefined,
+				undefined,
+				undefined,
+				{
+					fill: highlight.color,
+					'mix-blend-mode': 'multiply'
+				}
+			);
+		}
+
+		// If this is an existing highlight, update its styles.
+		else {
+			// TODO: this can be cleaned up; the code is repetitive with the above.
+			rendition!.annotations.remove(highlight.cfiRange.toString(), 'highlight');
+			rendition!.annotations.add(
+				'highlight',
+				highlight.cfiRange.toString(),
+				undefined,
+				undefined,
+				undefined,
+				{
+					fill: highlight.color,
+					'mix-blend-mode': 'multiply'
+				}
+			);
 		}
 
 		// Get the index of the highlight with the same cfiRange as the one we're saving
@@ -132,7 +163,17 @@ const App = () => {
 
 			// Render previously-saved highlights
 			highlights.forEach(highlight => {
-				r.annotations.add('highlight', highlight.cfiRange.toString());
+				r.annotations.add(
+					'highlight',
+					highlight.cfiRange.toString(),
+					undefined,
+					undefined,
+					undefined,
+					{
+						fill: highlight.color,
+						'mix-blend-mode': 'multiply'
+					}
+				);
 			});
 
 			r.display(location?.start.cfi);
@@ -224,6 +265,9 @@ const App = () => {
 									'highlight'
 								);
 							}}
+							onDownloadClicked={() => {
+								downloadHighlights(highlights);
+							}}
 						/>
 					</div>
 					<div className="absolute bottom-0 w-1/2 max-w-3xl place-self-center">
@@ -248,6 +292,8 @@ const App = () => {
 													? highlightBeingEdited?.cfiRange
 													: selection!
 											}
+											color={highlightBeingEdited?.color}
+											text={extractTextFromSelection(renditionWindow!)}
 										/>
 									</div>
 								)}

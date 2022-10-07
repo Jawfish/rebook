@@ -13,14 +13,26 @@ type Props = {
 	title?: string;
 	annotation?: string;
 	range: EpubCFI;
+	color?: string;
+	text: string;
 	onCancel: () => void;
 	onSave: (highlight: Highlight) => void;
 };
 
+enum HighlightColors {
+	Yellow = '#FDFD96',
+	Blue = '#96FDFD',
+	Green = '#96FD96',
+	Red = '#FD9696'
+}
+
+// TODO: change this to take a Highlight object
 const HighlightModalComponent = ({
 	title = '',
 	annotation = '',
 	range,
+	text,
+	color = HighlightColors.Yellow,
 	onCancel,
 	onSave
 }: Props) => {
@@ -28,6 +40,7 @@ const HighlightModalComponent = ({
 	const [annotationValue, setAnnotationValue] = useState(annotation);
 	const [titleError, setTitleError] = useState(false);
 	const [rangeValue] = useState(range);
+	const [highlightColor, setHighlightColor] = useState(color);
 
 	useEffect(() => {
 		if (titleError) document.getElementById('title')?.focus();
@@ -59,13 +72,29 @@ const HighlightModalComponent = ({
 					value={annotationValue}
 					onInput={e => setAnnotationValue(e.currentTarget.value)}
 				/>
+				<div className="flex flex-row justify-between py-1">
+					Highlight Color:
+				</div>
+				{/* This could be componentized */}
+				<div className="flex flex-row gap-2 py-1">
+					{Object.values(HighlightColors).map(color => (
+						<div
+							key={color}
+							className={`h-6 w-6 cursor-pointer rounded-full border border-gray-500 transition-all duration-100  ${
+								highlightColor === color ? 'ring-1 ring-black' : ''
+							}`}
+							style={{ backgroundColor: color }}
+							onClick={() => setHighlightColor(color)}
+						/>
+					))}
+				</div>
 			</div>
 			<div className="flex justify-between">
 				<div className="mt-2">
 					<ButtonComponent
 						label="Cancel"
 						onClick={onCancel}
-						buttonClass="cancel-button"
+						buttonClass="default-button"
 					/>
 				</div>
 				<div
@@ -82,7 +111,9 @@ const HighlightModalComponent = ({
 								const highlight: Highlight = {
 									title: titleValue,
 									annotation: annotationValue,
-									cfiRange: rangeValue
+									cfiRange: rangeValue,
+									color: highlightColor,
+									text
 								};
 								onSave(highlight);
 							} else {
