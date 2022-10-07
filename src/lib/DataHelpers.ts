@@ -2,7 +2,6 @@ import type Book from 'epubjs/types/book';
 
 import ePub, { Location } from 'epubjs';
 import localforage from 'localforage';
-import { useContext } from 'react';
 
 import Highlight from '../types/Highlight';
 import BookInfo from '../types/BookInfo';
@@ -55,11 +54,3 @@ export const getBookFromEpub = (file: File): Book =>
 	// epubjs's Book constructor can take a File object.
 	// The casting is necessary to avoid a type error.
 	ePub(file as unknown as ArrayBuffer);
-
-/**
- * Returns BookInfo from a given book name as the key in IndexedDB.
- * @param name The name of the book to get.
- * @returns The BookInfo for the book with the given name.
- */
-const getBook = async (name: string): Promise<BookInfo> =>
-	localforage.getItem(name) as Promise<BookInfo>;

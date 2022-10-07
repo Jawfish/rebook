@@ -27,7 +27,7 @@ const HighlightModalComponent = ({
 	const [titleValue, setTitleValue] = useState(title);
 	const [annotationValue, setAnnotationValue] = useState(annotation);
 	const [titleError, setTitleError] = useState(false);
-	const [rangeValue, setRangeValue] = useState(range);
+	const [rangeValue] = useState(range);
 
 	useEffect(() => {
 		if (titleError) document.getElementById('title')?.focus();
