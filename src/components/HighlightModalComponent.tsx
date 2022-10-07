@@ -1,4 +1,7 @@
+import { EpubCFI } from 'epubjs';
 import { useEffect, useState } from 'react';
+
+import Highlight from '../types/Highlight';
 
 import ButtonComponent from './ButtonComponent/ButtonComponent';
 
@@ -9,19 +12,22 @@ import ButtonComponent from './ButtonComponent/ButtonComponent';
 type Props = {
 	title?: string;
 	annotation?: string;
+	range: EpubCFI;
 	onCancel: () => void;
-	onSave: (title: string, annotation: string) => void;
+	onSave: (highlight: Highlight) => void;
 };
 
 const HighlightModalComponent = ({
 	title = '',
 	annotation = '',
+	range,
 	onCancel,
 	onSave
 }: Props) => {
 	const [titleValue, setTitleValue] = useState(title);
 	const [annotationValue, setAnnotationValue] = useState(annotation);
 	const [titleError, setTitleError] = useState(false);
+	const [rangeValue, setRangeValue] = useState(range);
 
 	useEffect(() => {
 		if (titleError) document.getElementById('title')?.focus();
@@ -73,7 +79,12 @@ const HighlightModalComponent = ({
 						label="Save"
 						onClick={() => {
 							if (titleValue) {
-								onSave(titleValue, annotationValue);
+								const highlight: Highlight = {
+									title: titleValue,
+									annotation: annotationValue,
+									cfiRange: rangeValue
+								};
+								onSave(highlight);
 							} else {
 								setTitleError(true);
 							}

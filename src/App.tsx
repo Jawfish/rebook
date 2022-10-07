@@ -30,7 +30,8 @@ const App = () => {
 	const [highlightModalShowing, setHighlightModalShowing] = useState(false);
 	const [renditionWindow, setRenditionWindow] = useState<Window | null>(null);
 	const [selection, setSelection] = useState<EpubCFI | null>(null);
-
+	const [highlightBeingEdited, setHighlightBeingEdited] =
+		useState<Highlight | null>(null);
 	/**
 	 * Handles UploaderComponent's onUpload event.
 	 * @param file The uploaded file.
@@ -52,33 +53,40 @@ const App = () => {
 
 	/**
 	 * Save a given highlight to the internal state.
-	 * @param title The title of the highlight.
-	 * @param annotation The annotation associated with the highlight.
-	 * @param cfiRange The location of the highlight.
+	 * @param highlight The highlight to save.
 	 */
 	const saveHighlight = (
 		// TODO: consider making this more functional by taking a rendition
 		// object; also consider taking a Highlight object directly instead
 		// of constructing it here. Could be moved out of the App component
-		// into Utils.
-		title: string,
-		annotation: string,
-		// Default to the current selection if none is provided
-		// for saving a new highlight - the range can be specified
-		// when editing an existing highlight.
-		cfiRange: EpubCFI = selection!
+		// into Utils. Also consider separating editing and saving new highlights.
+		highlight: Highlight
 	) => {
-		const highlight = {
-			title,
-			annotation,
-			cfiRange
-		};
+		// If this is a new highlight, render it to the rendition.
+		if (highlights.find(h => h.cfiRange === highlight.cfiRange) === undefined) {
+			rendition!.annotations.add('highlight', highlight.cfiRange.toString());
+		}
 
-		// We do this so the new highlight will be rendered immediately.
-		rendition!.annotations.add('highlight', selection!.toString());
+		// Get the index of the highlight with the same cfiRange as the one we're saving
+		const index = highlights.findIndex(
+			h => h.cfiRange.toString() === highlight.cfiRange.toString()
+		);
+
+		// If a highlight with the same cfiRange already exists, remove it.
+		const newHighlights = highlights.filter(
+			h => h.cfiRange.toString() !== highlight.cfiRange.toString()
+		);
+
+		// Place the new highlight at the index of the previous one if it existed.
+		if (index !== -1) {
+			newHighlights.splice(index, 0, highlight);
+		} else {
+			newHighlights.push(highlight);
+		}
+
 		// Save to internal state - will be serialized through App.tsx's useEffect.
-		setHighlights([...highlights, highlight]);
-
+		setHighlights(newHighlights);
+		setHighlightBeingEdited(null);
 		clearSelection();
 	};
 
@@ -119,23 +127,6 @@ const App = () => {
 		// should only be added here to prevent them from being
 		// added multiple times when components are re-rendered.
 		if (viewer.current && book && !rendition) {
-			// Runs when the user makes a selection within the rendition via
-			// the 'selected' event.
-			const handleSelection = (cfiRange: EpubCFI, contents: Contents) => {
-				setSelection(cfiRange);
-				if (!renditionWindow) {
-					// Make sure the rest of the app knows when the user deselects
-					// text in the rendition.
-					contents.window.document.addEventListener('selectionchange', () => {
-						if (!contents.window.document.getSelection()?.toString()) {
-							clearSelection();
-						}
-					});
-
-					setRenditionWindow(contents.window);
-				}
-			};
-
 			// Creates the actual rendition object
 			const r = renderBookOnElement(book, viewer);
 
@@ -146,7 +137,28 @@ const App = () => {
 
 			r.display(location?.start.cfi);
 
-			r.on('selected', (l: EpubCFI, c: Contents) => handleSelection(l, c));
+			r.hooks.content.register((contents: Contents) => {
+				// Enable rendition.next() and rendition.prev() on mousewheel
+				contents.window.addEventListener('wheel', w => {
+					if (w.deltaY > 0) {
+						r.next();
+					} else {
+						r.prev();
+					}
+				});
+
+				// Make sure the rest of the app knows when the user deselects
+				// text in the rendition.
+				contents.window.document.addEventListener('selectionchange', () => {
+					if (!contents.window.document.getSelection()?.toString()) {
+						clearSelection();
+					}
+				});
+
+				setRenditionWindow(contents.window);
+			});
+
+			r.on('selected', (l: EpubCFI) => setSelection(l));
 			r.on('relocated', (l: Location) => {
 				setLocation(l);
 			});
@@ -191,7 +203,7 @@ const App = () => {
 						/>
 					</div>
 					<div className="col-span-4 col-start-2 row-span-full min-h-screen overflow-y-hidden">
-						<div className="col-span-10  h-full w-full border border-green-400 bg-green-50 py-2">
+						<div className="col-span-10  h-full w-full  py-2">
 							<div ref={viewer}></div>
 						</div>
 					</div>
@@ -200,6 +212,17 @@ const App = () => {
 							highlights={highlights}
 							onHighlightClicked={highlight => {
 								rendition?.display(highlight.cfiRange.toString());
+							}}
+							onEditHighlightClicked={highlight => {
+								setHighlightBeingEdited(highlight);
+								setHighlightModalShowing(true);
+							}}
+							onDeleteHighlightClicked={highlight => {
+								setHighlights(highlights.filter(h => h !== highlight));
+								rendition?.annotations.remove(
+									highlight.cfiRange.toString(),
+									'highlight'
+								);
 							}}
 						/>
 					</div>
@@ -218,6 +241,13 @@ const App = () => {
 										<HighlightModalComponent
 											onCancel={clearSelection}
 											onSave={saveHighlight}
+											title={highlightBeingEdited?.title}
+											annotation={highlightBeingEdited?.annotation}
+											range={
+												highlightBeingEdited
+													? highlightBeingEdited?.cfiRange
+													: selection!
+											}
 										/>
 									</div>
 								)}
