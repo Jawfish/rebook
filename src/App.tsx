@@ -302,7 +302,11 @@ const App = () => {
 													: selection!
 											}
 											color={highlightBeingEdited?.color}
-											text={extractTextFromSelection(renditionWindow!)}
+											text={
+												highlightBeingEdited
+													? highlightBeingEdited?.text
+													: extractTextFromSelection(renditionWindow!)
+											}
 										/>
 									</div>
 								)}
