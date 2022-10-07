@@ -268,6 +268,15 @@ const App = () => {
 							onDownloadClicked={() => {
 								downloadHighlights(highlights);
 							}}
+							onClearClicked={() => {
+								highlights.forEach(highlight => {
+									rendition?.annotations.remove(
+										highlight.cfiRange.toString(),
+										'highlight'
+									);
+								});
+								setHighlights([]);
+							}}
 						/>
 					</div>
 					<div className="absolute bottom-0 w-1/2 max-w-3xl place-self-center">

@@ -13,6 +13,7 @@ type Props = {
 	onEditHighlightClicked: (highlight: Highlight) => void;
 	onDeleteHighlightClicked: (highlight: Highlight) => void;
 	onDownloadClicked: () => void;
+	onClearClicked: () => void;
 };
 
 const HighlightSidebar = ({
@@ -20,16 +21,22 @@ const HighlightSidebar = ({
 	onHighlightClicked,
 	onEditHighlightClicked,
 	onDeleteHighlightClicked,
-	onDownloadClicked
+	onDownloadClicked,
+	onClearClicked
 }: Props) => {
 	return (
 		<div className="h-full overflow-scroll border-x border-gray-300 bg-gray-50 p-2">
 			{highlights.length > 0 && (
-				<div className="text-right text-2xl">
+				<div className="flex justify-between text-2xl">
 					<FontAwesomeIcon
 						icon={faDownload}
-						className="cursor-pointer p-2 text-gray-300 transition-colors duration-75 hover:text-blue-500"
+						className="cursor-pointer p-2 text-gray-300 transition-colors duration-100 hover:text-blue-500"
 						onClick={onDownloadClicked}
+					/>
+					<FontAwesomeIcon
+						icon={faTrash}
+						className="cursor-pointer p-2 text-gray-300 transition-colors duration-100 hover:text-red-500"
+						onClick={onClearClicked}
 					/>
 				</div>
 			)}
@@ -49,7 +56,7 @@ const HighlightSidebar = ({
 							</div>
 							<div className="flex gap-2 self-end">
 								<div
-									className="p-1 text-lg text-gray-300 transition-all duration-75 hover:text-blue-500"
+									className="p-1 text-lg text-gray-300 transition-all duration-100 hover:text-blue-500"
 									onClick={e => {
 										e.stopPropagation();
 										onEditHighlightClicked(highlight);
@@ -57,7 +64,7 @@ const HighlightSidebar = ({
 									<FontAwesomeIcon icon={faPencil} />
 								</div>
 								<div
-									className="p-1 text-lg text-gray-300 transition-all duration-75 hover:text-red-500"
+									className="p-1 text-lg text-gray-300 transition-all duration-100 hover:text-red-500"
 									onClick={e => {
 										e.stopPropagation();
 										onDeleteHighlightClicked(highlight);
