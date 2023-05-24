@@ -61,8 +61,8 @@ const App = () => {
 	 * this function will set the example state to true.
 	 */
 	const handleLoadExampleBook = async () => {
-        setLoadExample(true);
-    }
+		setLoadExample(true);
+	};
 
 	/**
 	 * Save a given highlight to the internal state.
@@ -220,16 +220,22 @@ const App = () => {
 			serialize(file.name, file, highlights, location);
 		}
 
-		if (loadExample) {
-            fetch('/Example.epub')
-                .then(response => response.blob())
-                .then(blob => {
-                    const file = new File([blob], "Example.epub");
-                    handleFileUploaded(file);
-                    setLoadExample(false);
-                })
-                .catch(error => console.error('Error:', error));
-        }
+		const loadExampleFile = async () => {
+			if (loadExample) {
+				try {
+					const response = await fetch('/Example.epub');
+					const blob = await response.blob();
+					const file = new File([blob], 'Example.epub');
+					handleFileUploaded(file);
+					setLoadExample(false);
+				} catch (error) {
+					// eslint-disable-next-line no-console
+					console.error(error);
+				}
+			}
+		};
+
+		loadExampleFile();
 	}, [
 		file,
 		book,
@@ -248,9 +254,11 @@ const App = () => {
 				<div className="grid h-screen place-items-center">
 					<div className="w-96">
 						<UploaderComponent onUpload={handleFileUploaded} />
-						<button className="mt-2 bg-sky-500 hover:bg-sky-700 text-white transition-colors font-bold py-2 px-4 rounded duration-100 w-full" onClick={handleLoadExampleBook}>
-                            Load Example eBook
-                        </button>
+						<button
+							className="mt-2 w-full rounded bg-sky-500 py-2 px-4 font-bold text-white transition-colors duration-100 hover:bg-sky-700"
+							onClick={handleLoadExampleBook}>
+							Load Example eBook
+						</button>
 					</div>
 				</div>
 			)}
