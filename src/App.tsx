@@ -255,7 +255,7 @@ const App = () => {
 					<div className="w-96">
 						<UploaderComponent onUpload={handleFileUploaded} />
 						<button
-							className="mt-2 w-full rounded bg-sky-500 py-2 px-4 font-bold text-white transition-colors duration-100 hover:bg-sky-700"
+							className="mt-2 w-full rounded bg-sky-500 px-4 py-2 font-bold text-white transition-colors duration-100 hover:bg-sky-700"
 							onClick={handleLoadExampleBook}>
 							Load Example eBook
 						</button>

@@ -2,8 +2,8 @@ import '@uppy/core/dist/style.css';
 import '@uppy/drag-drop/dist/style.css';
 
 import Uppy from '@uppy/core';
-import { DragDrop } from '@uppy/react';
 import React from 'react';
+import { DragDrop } from '@uppy/react';
 
 type UploaderProps = {
 	onUpload: (file: File) => void;

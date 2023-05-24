@@ -1,6 +1,6 @@
 {
 	"name": "react-typescript-template",
-	"private": false,
+	"private": true,
 	"version": "0.0.1",
 	"license": "MIT",
 	"type": "module",
@@ -10,13 +10,13 @@
 		"email": "kaphix@gmail.com"
 	},
 	"scripts": {
+		"build": "tsc && pnpm lint:fix && vite build",
 		"dev": "vite",
-		"build": "tsc && yarn fix && vite build",
-		"test": "vitest -r tests",
-		"testui": "vite --ui --open",
+		"lint": "eslint --ext .ts,.tsx src",
+		"lint:fix": "eslint --ext .ts,.tsx src --fix",
 		"preview": "vite preview",
-		"lint": "eslint --ext .js,.jsx,.ts,.tsx src tests",
-		"fix": "yarn lint --fix"
+		"test": "vitest -r tests",
+		"test:ui": "vitest --ui --open"
 	},
 	"dependencies": {
 		"@floating-ui/react-dom-interactions": "^0.10.1",
